@@ -1,4 +1,4 @@
-import { DragEvent, MouseEvent, useState } from "react";
+import { DragEvent, MouseEvent, useEffect, useState } from "react";
 import "./App.css";
 
 interface IBoardItems {
@@ -13,35 +13,32 @@ interface IBoards {
 }
 
 function App() {
-  const [boards, setBoards] = useState<IBoards[]>([
-    {
-      id: 1,
-      title: "Сделать",
-      items: [
-        { id: 1, title: "Пойти в магазин" },
-        { id: 2, title: "Выкинуть мусор" },
-        { id: 3, title: "Покушать" },
-      ],
-    },
-    {
-      id: 2,
-      title: "Проверить",
-      items: [
-        { id: 4, title: "Код ревью" },
-        { id: 5, title: "Задача на факториал" },
-        { id: 6, title: "Задачи на фибоначчи" },
-      ],
-    },
-    {
-      id: 3,
-      title: "Сделано",
-      items: [
-        { id: 7, title: "Снять видео" },
-        { id: 8, title: "Смонтировать" },
-        { id: 9, title: "Отрендерить" },
-      ],
-    },
-  ]);
+  const [boards, setBoards] = useState<IBoards[]>([]);
+  useEffect(() => {
+    const getBoards = localStorage.getItem("boards");
+    if (!getBoards) {
+      const obj: IBoards[] = [
+        {
+          id: 1,
+          title: "Сделать",
+          items: [],
+        },
+        {
+          id: 2,
+          title: "Проверить",
+          items: [],
+        },
+        {
+          id: 3,
+          title: "Сделано",
+          items: [],
+        },
+      ];
+      localStorage.setItem("boards", JSON.stringify(obj));
+    }
+    //@ts-ignore
+    setBoards(JSON.parse(getBoards));
+  }, []);
   const [currentBoard, setCurrentBoard] = useState<null | IBoards>(null);
   const [currentItem, setCurrentItem] = useState<null | IBoardItems>(null);
   const [value, setValue] = useState<string>("");
@@ -66,11 +63,13 @@ function App() {
   }
 
   function dropHandler(e: DragEvent<HTMLDivElement>, board: IBoards, item: IBoardItems): void {
-    console.log(board.items);
     e.preventDefault();
     const currentIndex = currentBoard!.items.indexOf(currentItem!); // index of item in board
     currentBoard!.items.splice(currentIndex, 1); // deleting item in current board
-    const dropIndex = board.items.indexOf(item); // index of wherever item have to drop
+    let dropIndex = board.items.indexOf(item); // index of wherever item have to drop
+    if (currentIndex <= dropIndex && board.id === currentBoard!.id) {
+      dropIndex++;
+    }
     board.items.splice(dropIndex, 0, currentItem!); // insert item after drop index
     setBoards(
       boards.map((b) => {
@@ -83,6 +82,7 @@ function App() {
         return b;
       })
     );
+    localStorage.setItem("boards", JSON.stringify(boards));
     e.currentTarget.style.boxShadow = "none";
   }
   function dropCardHandler(e: DragEvent<HTMLDivElement>, board: IBoards): void {
@@ -102,6 +102,7 @@ function App() {
         })
       );
     }
+    localStorage.setItem("boards", JSON.stringify(boards));
   }
 
   function addItem(e: MouseEvent<HTMLButtonElement>): void {
@@ -118,23 +119,22 @@ function App() {
       const b: IBoards[] = JSON.parse(JSON.stringify(board));
       b[0].items.push(task);
 
+      localStorage.setItem("boards", JSON.stringify(b));
       return b;
     });
     setValue("");
   }
 
   function deleteItem(id: number): void {
-    // const newBoards = boards.map((board) => {
-    //   board.items.map(item => )
-    //   return board;
-    // });
-    setBoards((board) =>
-      board.map((board) => {
+    setBoards((board) => {
+      const obj = board.map((board) => {
         const newBoards = board.items.filter((item) => item.id !== id);
         board.items = newBoards;
         return board;
-      })
-    );
+      });
+      localStorage.setItem("boards", JSON.stringify(obj));
+      return obj;
+    });
   }
 
   return (
